@@ -23,16 +23,16 @@ class ServiceProvider extends LaravelServiceProvider
      */
     public function boot()
     {
-        Log::info(sprintf('============ %s: %s ===============', request()->method(), request()->fullUrl()));
-        DB::listen(function (QueryExecuted $query) {
+        \Log::channel('querylog')->debug(sprintf('QUERY STARTED: %s %s', request()->method(), request()->fullUrl()));
+        \DB::listen(function (QueryExecuted $query) {
             $sqlWithPlaceholders = str_replace(['%', '?'], ['%%', '%s'], $query->sql);
 
             $bindings = $query->connection->prepareBindings($query->bindings);
             $pdo = $query->connection->getPdo();
             $realSql = vsprintf($sqlWithPlaceholders, array_map([$pdo, 'quote'], $bindings));
-            $duration = $this->formatDuration($query->time / 1000);
+            $duration = $this->formatDuration($query->time);
 
-            Log::debug(sprintf('[%s] %s', $duration, $realSql));
+            \Log::channel('querylog')->debug(sprintf('QUERY=%s | TIME=%s', $realSql, $duration));
         });
     }
 
